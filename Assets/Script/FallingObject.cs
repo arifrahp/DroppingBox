@@ -16,26 +16,31 @@ public class FallingObject : MonoBehaviour
     [SerializeField] ObjectType objectType = new ObjectType();
 
     private PlayManager playManager;
+    private ObjectSpawner objectSpawner;
+    private MainBox mainBox;
     private void Start()
     {
         playManager = FindAnyObjectByType<PlayManager>();
+        objectSpawner = FindAnyObjectByType<ObjectSpawner>();
+        mainBox = FindAnyObjectByType<MainBox>();
         GameObject deleter = GameObject.Find("Object Deleter");
-        GameObject mainBox = GameObject.Find("Main Box");
+        GameObject mainBoxObject = GameObject.Find("Main Box");
 
         objectDeleter = deleter.GetComponent<Collider>();
-        mainBoxCollider = mainBox.GetComponent<Collider>();
+        mainBoxCollider = mainBoxObject.GetComponent<Collider>();
 
     }
     void Update()
     {
-        transform.Translate(Vector3.down * speed * Time.deltaTime);
+        float newY = transform.position.y - (speed * Time.deltaTime);
+        transform.position = new Vector3(transform.position.x, newY, transform.position.z);
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (other == objectDeleter)
         {
-            Destroy(this.gameObject);
+            HandleDestruction();
         }
 
         if(other == mainBoxCollider)
@@ -43,7 +48,10 @@ public class FallingObject : MonoBehaviour
             switch (objectType)
             {
                 case ObjectType.redObject:
-                    playManager.RedObjectCollide();
+                    if (!mainBox.isImune)
+                    {
+                        playManager.RedObjectCollide();
+                    }
                     break;
                 
                 case ObjectType.greenObject:
@@ -54,7 +62,16 @@ public class FallingObject : MonoBehaviour
                     playManager.CoinObjectCollide();
                     break;
             }
-            Destroy(this.gameObject);
+            HandleDestruction();
         }
+    }
+
+    public void HandleDestruction()
+    {
+        if(objectSpawner.activeFallingObjects.Contains(this.gameObject))
+        {
+            objectSpawner.activeFallingObjects.Remove(this.gameObject);
+        }
+        Destroy(this.gameObject);
     }
 }

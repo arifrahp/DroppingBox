@@ -4,6 +4,10 @@ using UnityEngine;
 
 public class ObjectDeleter : MonoBehaviour
 {
+    private void Start()
+    {
+        
+    }
     private void OnTriggerEnter(Collider other)
     {
         // Check if the colliding object has a FallingObject component

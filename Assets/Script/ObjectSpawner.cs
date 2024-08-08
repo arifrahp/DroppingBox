@@ -4,16 +4,17 @@ using UnityEngine;
 
 public class ObjectSpawner : MonoBehaviour
 {
-    public List<WeightedPrefab> weightedPrefabs; // List of weighted prefabs to spawn
+    public List<ObjectsToSpawn> objectsToSpawn;
 
     [System.Serializable]
-    public class WeightedPrefab
+    public class ObjectsToSpawn
     {
-        public FallingObject fallingObject; // Reference to the FallingObject script
+        public FallingObject fallingObject;
         public GameObject prefab;
         public float weight;
         public float minSpeed;
         public float maxSpeed;
+        public bool inGameOnlyOne;
     }
 
     public float spawnAreaMinX;
@@ -31,6 +32,8 @@ public class ObjectSpawner : MonoBehaviour
     private float currentMinSpawnInterval;
     private float currentMaxSpawnInterval;
     private float elapsedTime = 0f;
+
+    public List<GameObject> activeFallingObjects = new List<GameObject>();
 
     void Start()
     {
@@ -53,6 +56,7 @@ public class ObjectSpawner : MonoBehaviour
             currentMinSpawnInterval = Mathf.Clamp(initialMinSpawnInterval - (elapsedTime - 2f) * spawnIntervalDecreaseRate, minimumPossibleInterval, maxPossibleMinInterval);
             currentMaxSpawnInterval = Mathf.Clamp(initialMaxSpawnInterval - (elapsedTime - 2f) * spawnIntervalDecreaseRate, minimumPossibleInterval, maxPossibleMaxInterval);
         }
+        CleanupDestroyedObjects();
     }
 
     private IEnumerator<WaitForSeconds> SpawnObjects()
@@ -72,41 +76,47 @@ public class ObjectSpawner : MonoBehaviour
 
     private void SpawnRandomObject()
     {
-        if (weightedPrefabs.Count == 0)
+        if (objectsToSpawn.Count == 0)
         {
             Debug.LogWarning("No prefabs to spawn.");
             return;
         }
 
         // Choose a random prefab based on weights
-        WeightedPrefab chosenWeightedPrefab = GetRandomWeightedPrefab();
-        GameObject chosenPrefab = chosenWeightedPrefab.prefab;
+        ObjectsToSpawn chosenObjectToSpawn = GetRandomWeightedPrefab();
+        GameObject chosenPrefab = chosenObjectToSpawn.prefab;
 
         // Choose a random position within the spawn area
         float randomX = Random.Range(spawnAreaMinX, spawnAreaMaxX);
         Vector3 spawnPosition = new Vector3(randomX, spawnY, spawnZ);
 
+        // Retrieve the original rotation from the prefab
+        Quaternion originalRotation = chosenPrefab.transform.rotation;
+
         // Instantiate the chosen prefab at the random position
-        GameObject instantiatedObject = Instantiate(chosenPrefab, spawnPosition, Quaternion.identity);
+        GameObject instantiatedObject = Instantiate(chosenPrefab, spawnPosition, originalRotation);
+
+        // Add the instantiated object to the active list
+        activeFallingObjects.Add(instantiatedObject);
 
         // Get the FallingObject component from the instantiated prefab
         FallingObject fallingObjectScript = instantiatedObject.GetComponent<FallingObject>();
         if (fallingObjectScript != null)
         {
             // Set the speed of the falling object to a random value between minSpeed and maxSpeed
-            float randomSpeed = Random.Range(chosenWeightedPrefab.minSpeed, chosenWeightedPrefab.maxSpeed);
+            float randomSpeed = Random.Range(chosenObjectToSpawn.minSpeed, chosenObjectToSpawn.maxSpeed);
             fallingObjectScript.speed = randomSpeed;
         }
     }
 
-    private WeightedPrefab GetRandomWeightedPrefab()
+    private ObjectsToSpawn GetRandomWeightedPrefab()
     {
         float totalWeight = 0f;
 
         // Calculate the total weight
-        foreach (WeightedPrefab weightedPrefab in weightedPrefabs)
+        foreach (ObjectsToSpawn objectToSpawn in objectsToSpawn)
         {
-            totalWeight += weightedPrefab.weight;
+            totalWeight += objectToSpawn.weight;
         }
 
         // Get a random value between 0 and totalWeight
@@ -114,16 +124,21 @@ public class ObjectSpawner : MonoBehaviour
         float currentWeight = 0f;
 
         // Find the prefab corresponding to the random weight
-        foreach (WeightedPrefab weightedPrefab in weightedPrefabs)
+        foreach (ObjectsToSpawn objectToSpawn in objectsToSpawn)
         {
-            currentWeight += weightedPrefab.weight;
+            currentWeight += objectToSpawn.weight;
             if (randomWeight < currentWeight)
             {
-                return weightedPrefab;
+                return objectToSpawn;
             }
         }
 
         // Fallback, should never reach here
-        return weightedPrefabs[0];
+        return objectsToSpawn[0];
+    }
+    private void CleanupDestroyedObjects()
+    {
+        // Remove destroyed or null objects from the active list
+        activeFallingObjects.RemoveAll(item => item == null);
     }
 }

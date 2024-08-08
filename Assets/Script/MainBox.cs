@@ -9,9 +9,17 @@ public class MainBox : MonoBehaviour
     public float minX;
     public float maxX;
 
+    public bool isImune;
+    private Renderer objectRenderer;
+    private Color originalColor;
+
     void Start()
     {
-        
+        objectRenderer = GetComponent<Renderer>();
+        if (objectRenderer != null)
+        {
+            originalColor = objectRenderer.material.color;
+        }
     }
 
     void Update()
@@ -49,6 +57,11 @@ public class MainBox : MonoBehaviour
 
             transform.position = newPosition;
         }
+
+        if(isImune)
+        {
+            /*Beeping();*/
+        }
     }
 
     private Vector3 GetMouseWorldPos()
@@ -60,4 +73,25 @@ public class MainBox : MonoBehaviour
         return Camera.main.ScreenToWorldPoint(mousePoint);
     }
 
+    public void Beeping()
+    {
+        LeanTween.color(this.gameObject, new Color(originalColor.r, originalColor.g, originalColor.b, 0), 0.1f).setOnComplete(() =>
+        {
+            LeanTween.color(this.gameObject, new Color(originalColor.r, originalColor.g, originalColor.b, 255), 0.1f).setOnComplete(() =>
+            {
+                Beeping();
+            });
+        });
+    }
+
+    public void OnImune()
+    {
+        isImune = true;
+        Invoke("DeactivateImmunity", 2f);
+    }
+
+    public void DeactivateImmunity()
+    {
+        isImune = false;
+    }
 }

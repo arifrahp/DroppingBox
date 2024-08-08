@@ -148,3 +148,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   speed: 7
   objectDeleter: {fileID: 0}
+  mainBoxCollider: {fileID: 0}
+  objectType: 0
